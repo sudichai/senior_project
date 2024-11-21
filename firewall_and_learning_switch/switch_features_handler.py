@@ -11,23 +11,23 @@ class SwitchFeaturesHandler:
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        # Install table-miss flow entry
+        # Install a table-miss flow entry (for packets not matched by other rules)
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         self.add_flow(datapath, 0, match, actions)
 
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
-        """Add a flow to the switch."""
+        """Add a flow to the switch's flow table."""
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         if buffer_id:
-            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
-                                    priority=priority, match=match,
-                                    instructions=inst)
+             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
+                                priority=priority, match=match,
+                                instructions=inst)
         else:
-            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                    match=match, instructions=inst)
+             mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+                                match=match, instructions=inst)
         datapath.send_msg(mod)
+        self.logger.info("Flow added: match=%s, actions=%s", match, actions)
 
