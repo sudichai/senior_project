@@ -3,7 +3,7 @@
 import logging
 
 class FirewallHandler:
-    def __init__(self, logger, rules_file='./sdn_module/firewall_rule.txt'):
+    def __init__(self, logger, rules_file='/home/wifi/sdn_module/firewall_and_learning_switch/firewall_rule.txt'):
         self.logger = logger
         self.rules_file = rules_file
         self.firewall_rules = self.load_firewall_rules()
@@ -17,6 +17,8 @@ class FirewallHandler:
                     line = line.strip()
                     if line and not line.startswith("#"):  # Ignore comments and empty lines
                         rules.add(tuple(line.split(',')))  # Add rule as (src_mac, dst_mac)
+            self.logger.info("Loading firewall rule successes from : " + self.rules_file)
+            
         except FileNotFoundError:
             self.logger.warning("%s not found. No rules loaded.", self.rules_file)
         return rules
@@ -24,4 +26,5 @@ class FirewallHandler:
     def is_blocked(self, src_mac, dst_mac):
         """Check if a packet should be blocked."""
         return (src_mac, dst_mac) in self.firewall_rules
+
 

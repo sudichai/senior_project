@@ -1,4 +1,4 @@
-#packet_in_handler.py
+# packet_in_handler.py
 
 from ryu.lib.packet import packet, ethernet
 from ryu.lib.packet import ether_types
@@ -22,24 +22,24 @@ class PacketInHandler:
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
-        # Ignore LLDP packets
+        # Ignore LLDP packets (Link Layer Discovery Protocol)
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             return
 
         src = eth.src
         dst = eth.dst
 
-        # Check firewall rules
+        # Check firewall rules and block traffic if necessary
         if self.firewall.is_blocked(src, dst):
+            match = parser.OFPMatch(eth_src=src, eth_dst=dst)
+            self.add_flow(datapath, priority=100, match=match, actions=[])
             self.logger.info("Blocking packet: %s -> %s (firewall rule matched)", src, dst)
             return
 
         dpid = format(datapath.id, "d").zfill(16)
         self.mac_to_port.setdefault(dpid, {})
 
-        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
-
-        # Learn a mac address to avoid FLOOD next time
+        # Learn a mac address to avoid flooding next time
         self.mac_to_port[dpid][src] = in_port
 
         if dst in self.mac_to_port[dpid]:
@@ -64,9 +64,9 @@ class PacketInHandler:
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
-
+        
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
-        """Add a flow to the switch."""
+        """Add a flow to the switch's flow table."""
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -79,3 +79,4 @@ class PacketInHandler:
             mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
+        self.logger.info("Flow added: match=%s, actions=%s, priority=%s", match, actions, priority)
